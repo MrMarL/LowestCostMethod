@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections;
-using System.Text;
 
 namespace Lab3
 {
@@ -10,13 +8,14 @@ namespace Lab3
         protected Min min = new Min();
         public int Calculate(List<List<int>> matrix)
         {
-            Print(matrix);
-
             int cost = 0;
 
             while (matrix.Count > 1)
             {
+                Print(matrix);
                 GetMin(matrix);
+
+                int oldcost = cost;
 
                 int warehouse = matrix[0][min.y];
                 int consumer = matrix[min.x][0];
@@ -35,8 +34,7 @@ namespace Lab3
                         for (int r = 0; matrix.Count > r; r++)
                             matrix[r].RemoveAt(min.y);
                 }
-                
-                Print(matrix);
+                Console.WriteLine("Привезено товара:" + (cost - oldcost) / min.value);
                 Console.WriteLine("Cost = " + cost);
             }
             return cost;
