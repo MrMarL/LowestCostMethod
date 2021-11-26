@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using Excel = Microsoft.Office.Interop.Excel;
+using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace Lab3
 {
@@ -14,41 +16,30 @@ namespace Lab3
             string patch = "";
             foreach (string a in args)patch+=a;
 
-            patch = patch == "" ? "C:\\Users\\Пользователь\\Desktop\\0.xlsx" : patch;
-
-            Excel.Application excelApp = new Excel.Application();
-
-            if (excelApp == null)
-            {
-                Console.WriteLine("Excel is not installed!!");
-                return;
-            }
             try
             {
-                Excel.Workbook excelBook = excelApp.Workbooks.Open(patch);
-                Excel.Worksheet excelSheet = excelBook.Sheets[1];
-                Excel.Range excelRange = excelSheet.UsedRange;
-
-                int rows = excelRange.Rows.Count;
-                int cols = excelRange.Columns.Count;
-
-                List<List<int>> matrix = new List<List<int>>();
-
-                for (int i = 1; i <= rows; i++)
+                using (SpreadsheetDocument doc = SpreadsheetDocument.Open(patch, true))
                 {
-                    List<int> matr_ = new List<int>();
-                    for (int j = 1; j <= cols; j++)
-                        if (excelRange.Cells[i, j] != null && ((Excel.Range)excelRange.Cells[i, j]).Value2 != null)
-                            matr_.Add((int)((Excel.Range)excelRange.Cells[i, j]).Value2);
-                    matrix.Add(matr_);
+                    Sheet sheet = doc.WorkbookPart.Workbook.Sheets.GetFirstChild<Sheet>();
+                    Worksheet worksheet = (doc.WorkbookPart.GetPartById(sheet.Id.Value) as WorksheetPart).Worksheet;
+                    IEnumerable<Row> rows = worksheet.GetFirstChild<SheetData>().Descendants<Row>();
+
+                    List<List<int>> matrix = new List<List<int>>();
+
+                    foreach (Row row in rows)
+                    {
+                        List<int> matr_ = new List<int>();
+                        foreach (Cell c in row)
+                            matr_.Add(int.Parse(c.CellValue.Text));
+                        matrix.Add(matr_);
+                    }
+
+                    int cost = lcm.Calculate(matrix);
+
+                    rows.First().GetFirstChild<Cell>().CellValue = new CellValue(cost);
+                    worksheet.Save();
                 }
-
-                int cost = lcm.Calculate(matrix);
-
-                excelSheet.Cells[1, "A"] = cost;
             } catch { Console.WriteLine("Ошибка открытия файла "+patch);}
-            excelApp.Quit();
-            System.Runtime.InteropServices.Marshal.ReleaseComObject(excelApp);
 
             Console.WriteLine("\nНажмите любую клавишу для выхода.");
             Console.Read();
